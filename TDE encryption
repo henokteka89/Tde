@@ -69,8 +69,6 @@ Replace YourDatabaseName, YourLogicalDataFileName, YourPhysicalDataFileName.mdf,
 8. Verify the Restore
 After the restore, verify that the database is properly restored and accessible:
 
-
-Copy code
 USE YourDatabaseName;
 SELECT name, is_encrypted
 FROM sys.databases
