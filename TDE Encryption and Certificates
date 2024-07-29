@@ -1,0 +1,58 @@
+TDE Encryption and Certificates
+1. Per-Database Encryption:
+
+TDE is enabled individually for each database. This means you can choose which databases to encrypt with TDE.
+- Each TDE-enabled database uses its own Database Encryption Key (DEK).
+
+2. Certificates and Keys:
+
+- The DEK is stored in the database and protected by a certificate.
+- The certificate that encrypts the DEK is stored in the master database of the SQL Server instance.
+- You can use the same certificate to protect multiple databases, but typically, each TDE-enabled database is associated with a specific certificate.
+
+3. Passwords:
+- The certificate used to protect the DEK is created with a password.
+- The password used when creating the certificate and when backing up/restoring the certificate is important for maintaining the security of the database.
+- When you create or backup a certificate, you need to specify a password for the private key. This password is used to encrypt the private key in the backup file.
+
+
+Creating and Managing TDE Certificates and Keys
+
+1. Creating a Certificate:
+
+When you create a TDE certificate, you specify a password that encrypts the private key.
+ 
+USE master;
+CREATE CERTIFICATE TDECertificate
+WITH SUBJECT = 'TDE Certificate';
+
+2. Backing Up a Certificate:
+
+When you back up the certificate, you must specify a password to protect the private key in the backup file.
+ 
+BACKUP CERTIFICATE TDECertificate
+TO FILE = 'C:\path\to\backup\TDECertificate.cer'
+WITH PRIVATE KEY (
+    FILE = 'C:\path\to\backup\TDECertificate.key',
+    ENCRYPTION BY PASSWORD = 'YourStrongPassword'
+);
+
+3. Using a Certificate for TDE:
+
+You can enable TDE on a database using the DEK, which is protected by the certificate.
+ 
+USE YourDatabaseName;
+CREATE DATABASE ENCRYPTION KEY
+WITH ALGORITHM = AES_256
+ENCRYPTION BY SERVER CERTIFICATE TDECertificate;
+Enabling TDE on a Database:
+
+Finally, you enable TDE on the database.
+ 
+ALTER DATABASE YourDatabaseName
+SET ENCRYPTION ON;
+
+Summary
+A. TDE is per-database: Each database can be individually encrypted using TDE.
+B. Certificates and Keys: Each database encryption key (DEK) is protected by a certificate stored in the master database. The certificate can be used for multiple databases, but it’s common to have a specific certificate for each TDE-enabled database.
+C. Passwords: The password used to protect the certificate and the private key is crucial and must be managed securely.
