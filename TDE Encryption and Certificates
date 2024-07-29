@@ -56,3 +56,5 @@ Summary
 A. TDE is per-database: Each database can be individually encrypted using TDE.
 B. Certificates and Keys: Each database encryption key (DEK) is protected by a certificate stored in the master database. The certificate can be used for multiple databases, but it’s common to have a specific certificate for each TDE-enabled database.
 C. Passwords: The password used to protect the certificate and the private key is crucial and must be managed securely.
+
+Encrypt የሚደረገው ዳታቤዝ DEK (database encryption key) ይኖረዋል። ይሄ DEK ማስተር ዳታቤዝ ውስጥ በሚቀመጥ ሰርቲፊኬት (certificate) ይቆለፋል። ይሄን ሰርቲፊኬት ባካፕ አድርጎ ወደ ሌላ ሰርቨር ለመውሰድ ወይም ለመፍጠር (backup /restore ወይም recreate) ፕራይቬት ኪይ (key) ያስፈልጋል። 
