@@ -1,0 +1,63 @@
+ALTER PROC [dbo].[sp_getTDEcertificateandkey]
+(
+    @password NVARCHAR(50) = N'strongpassword',
+    @servername_varchar(50) = @@SERVERNAME,
+    @tdecertpassword NVARCHAR(50) = null
+)
+AS
+--DECLARE @password NVARCHAR(50) = N'password'; -- For Debugging uncomment this and check the create proc
+
+DECLARE @name NVARCHAR(50);
+SELECT @name = name
+FROM sys.certificates
+WHERE name LIKE 'TDE%'; -- I got TdeCert
+
+IF @tdecertpassword IS NULL
+BEGIN
+    SELECT @tdecertpassword = @password
+END
+
+--SELECT @name AS Name;
+
+IF @name IS NULL
+BEGIN
+    PRINT 'It appears that there is no TDE encryption or Certificate in the server. Please verify using:'
+    USE master;
+    SELECT name, thumbprint, subject, expiry_date
+    FROM sys.certificates';
+END
+
+IF @name IS NOT NULL
+BEGIN
+    PRINT '1. Create a Master Key on the Target Server (if not exists):'
+    /* 
+    USE master;
+    CREATE MASTER KEY ENCRYPTION BY PASSWORD = ''' + @password + '''' + 
+    */
+    PRINT '2. To back Up the Certificate and the Private Key from the Source Server'
+    USE master;
+    BACKUP CERTIFICATE ' 
+        + @name + @@SERVERNAME +
+        'TO FILE = ''\\filesharedestinationfolder\' + @name + @@SERVERNAME + '.cer'' +
+        WITH PRIVATE KEY (FILE = ''\\filesharedestinationfolder\' + @name + @@SERVERNAME + '.key'' 
+        ENCRYPTION BY PASSWORD = ''' + @tdecertpassword + '''
+    END
+END
+
+-- 3. RESTORE the TDE certificate and private key on the Target (Destination) Server:
+ /*
+ USE master;
+ CREATE CERTIFICATE ' 
+ + @name +
+ ' FROM FILE = ''\\filesharedestinationfolder\' + @name + @@SERVERNAME + '.cer''' +
+ ' WITH PRIVATE KEY (FILE = ''\\filesharedestinationfolder\' + @name + @@SERVERNAME + '.key'''
+ ' DECRYPTION BY PASSWORD = ''' + @tdecertpassword + '''
+ */
+PRINT 
+' -- If you would like to verify the TDE certificate in the database, use the below command
+USE DB_name; --substitute by the database name
+
+SELECT name, is_encrypted
+FROM sys.databases
+WHERE name = DB_name --substitute by the database name ';
+END
