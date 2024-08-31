@@ -1,0 +1,34 @@
+-- Create Master Key
+USE MASTER;
+GO
+-- Create master key and certificate
+--In order to encrypt a backup of this database we need either a certificate or an asymmetric key
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'strongpassword';
+GO
+
+-- This key is then used to encrypt our certificate for storage
+
+CREATE CERTIFICATE TDEcertificate
+    WITH SUBJECT = 'TDE certificate for tdetest database';
+GO
+
+
+-- Export the backup certificate to a file with private key
+BACKUP CERTIFICATE TDEcertificate 
+TO FILE = 'E:\Cert Files\TDEcertificate.cert'
+WITH PRIVATE KEY (
+FILE = 'E:\Cert Files\TDEcertificate.key',
+ENCRYPTION BY PASSWORD = 'strongpassword')
+
+-- Backup the database with encryption
+BACKUP DATABASE tdetest
+TO DISK = 'D:\Data\tdetest.bak'
+WITH ENCRYPTION (ALGORITHM = AES_256, SERVER CERTIFICATE = TDEcertificate)
+
+
+-- Destination Server: Now we have encrypted backup, restore it 
+RESTORE DATABASE tdetest 
+   FROM DISK = N'D:\data\tdetest.bak' 
+   WITH 
+      MOVE N'tdetest' TO N'E:\Data\tdetest.mdf', 
+      MOVE N'tdetest_log' TO N'E:\Data\tdetest_log.ldf'
