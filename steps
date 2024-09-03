@@ -1,3 +1,46 @@
+Steps to Enable TDE
+
+1. Create a Master Key (if not already available):
+USE master;
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'your_strong_password';
+2. Create a Certificate:
+CREATE CERTIFICATE TDECert
+WITH SUBJECT = 'TDE Certificate';
+3. Create a Database Encryption Key (DEK):
+USE your_database;
+CREATE DATABASE ENCRYPTION KEY
+WITH ALGORITHM = AES_256
+ENCRYPTION BY SERVER CERTIFICATE TDECert;
+4. Enable TDE for the Database:
+ALTER DATABASE your_database
+SET ENCRYPTION ON;
+
+Disabling TDE
+
+To disable TDE on a database, follow these steps:
+1. Turn Off Encryption:
+ALTER DATABASE your_database
+SET ENCRYPTION OFF;
+2. Drop the Database Encryption Key:
+USE your_database;
+DROP DATABASE ENCRYPTION KEY;
+3. Drop the Certificate (optional):
+USE master;
+DROP CERTIFICATE TDECert;
+
+Monitoring TDE
+
+To check if TDE is enabled on a database:
+SELECT name, is_encrypted
+FROM sys.databases
+WHERE is_encrypted = 1;
+To monitor TDE encryption progress:
+SELECT db_name(database_id) AS DatabaseName, percent_complete
+FROM sys.dm_database_encryption_keys;
+
+
+
+/*
 -- Create Master Key
 USE MASTER;
 GO
@@ -32,3 +75,4 @@ RESTORE DATABASE tdetest
    WITH 
       MOVE N'tdetest' TO N'E:\Data\tdetest.mdf', 
       MOVE N'tdetest_log' TO N'E:\Data\tdetest_log.ldf'
+*/
