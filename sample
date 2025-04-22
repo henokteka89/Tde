@@ -1,0 +1,95 @@
+--========================================
+--  PART 1: Configure TDE on SOURCE SERVER
+--========================================
+
+-- Step 1: Create a Master Key (if not exists)
+USE master;
+GO
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'StrongPassword123!';
+GO
+
+-- Step 2: Create a Certificate
+CREATE CERTIFICATE TDE_Cert
+WITH SUBJECT = 'TDE Certificate';
+GO
+
+-- Step 3: Create a Test Database
+CREATE DATABASE TDE_TestDB;
+GO
+
+-- Step 4: Create Database Encryption Key and Enable TDE
+USE TDE_TestDB;
+GO
+CREATE DATABASE ENCRYPTION KEY
+WITH ALGORITHM = AES_256
+ENCRYPTION BY SERVER CERTIFICATE TDE_Cert;
+GO
+
+ALTER DATABASE TDE_TestDB
+SET ENCRYPTION ON;
+GO
+
+-- Step 5: Backup the Certificate and Private Key
+BACKUP CERTIFICATE TDE_Cert
+TO FILE = 'C:\Backup\TDE_Cert.cer'
+WITH PRIVATE KEY (
+    FILE = 'C:\Backup\TDE_Cert_PrivateKey.pvk',
+    ENCRYPTION BY PASSWORD = 'BackupCertPassword123!'
+);
+GO
+
+-- Step 6: Backup the Encrypted Database
+BACKUP DATABASE TDE_TestDB
+TO DISK = 'C:\Backup\TDE_TestDB.bak';
+GO
+
+-- Manually copy these files to the destination server:
+-- - C:\Backup\TDE_Cert.cer
+-- - C:\Backup\TDE_Cert_PrivateKey.pvk
+-- - C:\Backup\TDE_TestDB.bak
+
+--========================================
+--   PART 2: Restore on DESTINATION SERVER
+--========================================
+
+-- Step 7: Create Master Key (if not exists)
+USE master;
+GO
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'StrongPassword123!';
+GO
+
+-- Step 8: Restore Certificate from Files
+CREATE CERTIFICATE TDE_Cert
+FROM FILE = 'C:\Backup\TDE_Cert.cer'
+WITH PRIVATE KEY (
+    FILE = 'C:\Backup\TDE_Cert_PrivateKey.pvk',
+    DECRYPTION BY PASSWORD = 'BackupCertPassword123!'
+);
+GO
+
+-- Step 9: Restore the Encrypted Databases
+RESTORE DATABASE TDE_TestDB
+FROM DISK = 'C:\Backup\TDE_TestDB.bak'
+WITH MOVE 'TDE_TestDB' TO 'C:\SQLData\TDE_TestDB.mdf',
+     MOVE 'TDE_TestDB_log' TO 'C:\SQLLogs\TDE_TestDB_log.ldf';
+GO
+
+--========================================
+--   PART 3: Verify Encryption
+--========================================
+
+SELECT 
+    db.name,
+    dek.encryption_state,
+    CASE dek.encryption_state
+        WHEN 0 THEN 'No database encryption key present'
+        WHEN 1 THEN 'Unencrypted'
+        WHEN 2 THEN 'Encryption in progress'
+        WHEN 3 THEN 'Encrypted'
+        WHEN 4 THEN 'Key change in progress'
+        WHEN 5 THEN 'Decryption in progress'
+    END AS encryption_status
+FROM sys.databases db
+LEFT JOIN sys.dm_database_encryption_keys dek
+    ON db.database_id = dek.database_id
+WHERE db.name = 'TDE_TestDB';
