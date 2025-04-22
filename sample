@@ -1,8 +1,47 @@
+/* 
+===========================================
+ SQL SERVER ENCRYPTION HIERARCHY (TDE)
+===========================================
+
+            WINDOWS OS (DPAPI)
+                     ↓
+         SERVICE MASTER KEY (SMK)
+  - Created automatically during SQL Server setup
+  - Protected by the Windows OS
+
+                     ↓
+     DATABASE MASTER KEY (DMK - in 'master')
+  - Created manually by DBA
+  - Encrypted by SMK
+
+                     ↓
+           CERTIFICATE (in 'master')
+  - Created manually
+  - Encrypted by the DMK
+
+                     ↓
+  DATABASE ENCRYPTION KEY (DEK - in USER DB)
+  - Encrypted by the certificate
+  - Used to encrypt the entire database
+
+                     ↓
+     TRANSPARENT DATA ENCRYPTION (TDE)
+  - Uses the DEK to encrypt data at rest
+  - Protects data files and backups
+
+--https://learn.microsoft.com/en-us/sql/relational-databases/security/encryption/transparent-data-encryption?view=sql-server-ver16
+ዊንዶው ሌቭል DPAPI ሁሉን ኪዎች ሴኩር የሚያደርግ አለ፤ SMK ኢንስታንስ ሌቭል SQL Server ሲጫን አብሮ አለ፣ 
+ማስተር ላይ ማስተርኪ (DMK) እና በሱ ኢንክሪፕትድ የሆነ CERTIFICATE እንፈጥራለን (ይህ CERTIFICATE ዩዘር ዳታቤዝ ላይ የምንፈጥረውን ኢንክሪፕሽን ኪይ (DEK) ኢንክሪፕት ያደርግልናል)። 
+ዩዘር ዳታቤዝ ላይ ኢንክሪፕሽን ኪይ (DEK) በሰርቲፊኬት እንክሪፕት የሆነ እንፈጥራለን።
+*/
+
+
+
 --========================================
 --  PART 1: Configure TDE on SOURCE SERVER
 --========================================
 
--- Step 1: Create a Master Key (if not exists)
+-- Step 1: Create a Master Key (if not exists)  
 USE master;
 GO
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'StrongPassword123!';
@@ -29,11 +68,14 @@ ALTER DATABASE TDE_TestDB
 SET ENCRYPTION ON;
 GO
 
--- Step 5: Backup the Certificate and Private Key
+-- Step 5: Backup the Certificate and Private Key (make sure to use Master database )
+Use Master;
+go 
+
 BACKUP CERTIFICATE TDE_Cert
-TO FILE = 'C:\Backup\TDE_Cert.cer'
+TO FILE = 'Z:\TDE_Cert.cer'
 WITH PRIVATE KEY (
-    FILE = 'C:\Backup\TDE_Cert_PrivateKey.pvk',
+    FILE = 'Z:\TDE_Cert_PrivateKey.pvk',
     ENCRYPTION BY PASSWORD = 'BackupCertPassword123!'
 );
 GO
