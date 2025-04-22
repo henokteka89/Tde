@@ -1,0 +1,42 @@
+-- Switch to master database
+USE master;
+GO
+
+-- Drop encryption from user database if applied
+-- Replace 'TDE_TestDB' if you used a different name
+IF EXISTS (
+    SELECT * FROM sys.dm_database_encryption_keys 
+    WHERE database_id = DB_ID('TDE_TestDB')
+)
+BEGIN
+    ALTER DATABASE TDE_TestDB SET ENCRYPTION OFF;
+    WAITFOR DELAY '00:00:05'; -- give it time to complete
+END
+GO
+
+-- Drop the database if it exists
+IF DB_ID('TDE_TestDB') IS NOT NULL
+BEGIN
+    DROP DATABASE TDE_TestDB;
+END
+GO
+
+-- Drop certificate if it exists
+IF EXISTS (
+    SELECT * FROM sys.certificates 
+    WHERE name = 'TDE_Cert'
+)
+BEGIN
+    DROP CERTIFICATE TDE_Cert;
+END
+GO
+
+-- Drop master key if it exists
+IF EXISTS (
+    SELECT * FROM sys.symmetric_keys 
+    WHERE name = '##MS_DatabaseMasterKey##'
+)
+BEGIN
+    DROP MASTER KEY;
+END
+GO
